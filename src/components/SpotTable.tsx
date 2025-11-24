@@ -45,9 +45,9 @@ export default function SpotTable() {
     if (prevStatus === undefined || prevStatus === currentStatus) return null
     
     if (currentStatus && !prevStatus) {
-      return <TrendingUp className="h-4 w-4 text-red-500" title="Just became occupied" />
+      return <TrendingUp className="h-4 w-4 text-red-500" aria-label="Just became occupied" />
     } else if (!currentStatus && prevStatus) {
-      return <TrendingDown className="h-4 w-4 text-green-500" title="Just became free" />
+      return <TrendingDown className="h-4 w-4 text-green-500" aria-label="Just became free" />
     }
     
     return null

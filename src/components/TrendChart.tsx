@@ -144,9 +144,9 @@ export default function TrendChart() {
         grid: {
           drawOnChartArea: false,
         },
+        beginAtZero: true,
         ticks: {
           color: 'rgb(107, 114, 128)',
-          beginAtZero: true,
           max: 100
         },
         title: {
