@@ -1,5 +1,5 @@
 'use client'
-
+export const dynamic = "force-dynamic";
 import { useState, useEffect } from 'react'
 import { useParkingContext } from '../../contexts/ParkingContext'
 import { ArrowLeft, Plus, Trash2, Save } from 'lucide-react'
