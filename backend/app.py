@@ -47,6 +47,7 @@ os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 print("🔄 Loading YOLOv8 model...")
 try:
     model = YOLO(MODEL_PATH)
+    model.fuse = False  
     print(f"✅ Model loaded successfully from {MODEL_PATH}")
 except Exception as e:
     print(f"❌ Error loading model: {e}")
