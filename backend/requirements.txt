@@ -5,7 +5,7 @@ opencv-python==4.8.1.78
 opencv-python-headless==4.8.1.78
 Pillow==10.4.0
 numpy==1.24.3
-
+gunicorn
 # Torch compatible with Ultralytics
 torch==2.3.1
 torchvision==0.18.1
