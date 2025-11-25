@@ -85,83 +85,85 @@ export default function TrendChart() {
   }
 
   const options: ChartOptions<'line'> = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'top' as const,
-        labels: {
-          usePointStyle: true,
-          padding: 20,
-          color: 'rgb(107, 114, 128)'
-        }
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: 'top',
+      labels: {
+        usePointStyle: true,
+        padding: 20,
+        color: 'rgb(107, 114, 128)'
+      }
+    },
+    title: {
+      display: false
+    },
+    tooltip: {
+      mode: 'index',
+      intersect: false,
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      titleColor: 'white',
+      bodyColor: 'white',
+      borderColor: 'rgba(255, 255, 255, 0.1)',
+      borderWidth: 1
+    }
+  },
+  scales: {
+    x: {
+      display: true,
+      grid: {
+        color: 'rgba(107, 114, 128, 0.1)'
+      },
+      ticks: {
+        color: 'rgb(107, 114, 128)',
+        maxTicksLimit: 8
+      }
+    },
+    y: {
+      type: 'linear',
+      display: true,
+      position: 'left',
+      beginAtZero: true,    // ✅ moved here
+      grid: {
+        color: 'rgba(107, 114, 128, 0.1)'
+      },
+      ticks: {
+        color: 'rgb(107, 114, 128)'
+        // ❌ removed beginAtZero from ticks
       },
       title: {
-        display: false
-      },
-      tooltip: {
-        mode: 'index',
-        intersect: false,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        titleColor: 'white',
-        bodyColor: 'white',
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-        borderWidth: 1
+        display: true,
+        text: 'Number of Spots',
+        color: 'rgb(107, 114, 128)'
       }
     },
-    scales: {
-      x: {
-        display: true,
-        grid: {
-          color: 'rgba(107, 114, 128, 0.1)'
-        },
-        ticks: {
-          color: 'rgb(107, 114, 128)',
-          maxTicksLimit: 8
-        }
+    y1: {
+      type: 'linear',
+      display: true,
+      position: 'right',
+      beginAtZero: true,   // already correct
+      grid: {
+        drawOnChartArea: false
       },
-      y: {
-        type: 'linear',
-        display: true,
-        position: 'left',
-        grid: {
-          color: 'rgba(107, 114, 128, 0.1)'
-        },
-        ticks: {
-          color: 'rgb(107, 114, 128)',
-          beginAtZero: true
-        },
-        title: {
-          display: true,
-          text: 'Number of Spots',
-          color: 'rgb(107, 114, 128)'
-        }
+      max: 100,
+      ticks: {
+        color: 'rgb(107, 114, 128)'
       },
-      y1: {
-        type: 'linear',
+      title: {
         display: true,
-        position: 'right',
-        grid: {
-          drawOnChartArea: false,
-        },
-        beginAtZero: true,
-        ticks: {
-          color: 'rgb(107, 114, 128)',
-          max: 100
-        },
-        title: {
-          display: true,
-          text: 'Utilization %',
-          color: 'rgb(107, 114, 128)'
-        }
+        text: 'Utilization %',
+        color: 'rgb(107, 114, 128)'
       }
-    },
-    interaction: {
-      mode: 'nearest',
-      axis: 'x',
-      intersect: false
     }
+  },
+  interaction: {
+    mode: 'nearest',
+    axis: 'x',
+    intersect: false
   }
+}
+
 
   return (
     <div className="card p-6">
