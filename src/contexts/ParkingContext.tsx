@@ -57,7 +57,7 @@ const defaultSettings: Settings = {
     { id: 'default', name: 'Default Camera' }
   ],
   selectedCamera: 'default',
-  apiEndpoint: 'http://localhost:5000/infer',
+  apiEndpoint: 'http://localhost:5000/detect',
   requestTimeout: 30,
   showConfidence: true,
   showTrends: true
@@ -116,14 +116,45 @@ export function ParkingProvider({ children }: { children: ReactNode }) {
       }
 
       const data = await response.json()
-      
+
+      const stats = data.statistics ?? {}
+      const detections = Array.isArray(stats.detections) ? stats.detections : []
+
+      const perSpotStatus = detections.length > 0
+        ? detections.map((det: any) => det?.class === 'space-occupied')
+        : Array.isArray(data.per_spot)
+          ? data.per_spot
+          : []
+
+      const confidence = detections.length > 0
+        ? detections.map((det: any) =>
+            typeof det?.confidence === 'number' ? det.confidence : 0
+          )
+        : Array.isArray(data.confidence)
+          ? data.confidence
+          : []
+
+      const occupiedCount = typeof stats.occupied_spaces === 'number'
+        ? stats.occupied_spaces
+        : data.occupied_count ?? 0
+
+      const freeCount = typeof stats.empty_spaces === 'number'
+        ? stats.empty_spaces
+        : data.free_count ?? 0
+
+      const annotatedImageB64 = data.image_base64
+        ?? data.annotated_image_b64
+        ?? ''
+
+      const timestamp = data.timestamp ?? new Date().toISOString()
+
       const parkingData: ParkingData = {
-        annotatedImageB64: data.annotated_image_b64,
-        occupiedCount: data.occupied_count,
-        freeCount: data.free_count,
-        perSpotStatus: data.per_spot,
-        timestamp: new Date().toISOString(),
-        confidence: data.confidence
+        annotatedImageB64,
+        occupiedCount,
+        freeCount,
+        perSpotStatus,
+        timestamp,
+        confidence
       }
 
       setCurrentData(parkingData)

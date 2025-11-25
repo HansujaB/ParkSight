@@ -170,7 +170,7 @@ export default function Settings() {
                   value={localSettings.apiEndpoint}
                   onChange={(e) => setLocalSettings(prev => ({ ...prev, apiEndpoint: e.target.value }))}
                   className="input-field"
-                  placeholder="http://localhost:5000/infer"
+                  placeholder="http://localhost:5000/detect"
                 />
               </div>
               <div>

@@ -176,6 +176,30 @@ def get_detection_stats(results, conf_threshold=0.25):
     
     return stats
 
+def extract_spot_details(results, conf_threshold=0.25):
+    """
+    Build per-spot occupancy booleans and confidence scores for frontend
+    """
+    per_spot = []
+    confidences = []
+
+    for result in results:
+        boxes = result.boxes
+
+        for box in boxes:
+            conf = float(box.conf[0])
+
+            if conf < conf_threshold:
+                continue
+
+            cls = int(box.cls[0])
+            class_name = result.names[cls]
+
+            per_spot.append(class_name == 'space-occupied')
+            confidences.append(round(conf, 4))
+
+    return per_spot, confidences
+
 def image_to_base64(image):
     """
     Convert OpenCV image to base64 string
@@ -183,6 +207,68 @@ def image_to_base64(image):
     _, buffer = cv2.imencode('.jpg', image)
     img_base64 = base64.b64encode(buffer).decode('utf-8')
     return img_base64
+
+
+def run_detection_pipeline(file_storage, conf_threshold):
+    """
+    Parse inbound image, run YOLO inference, save artifacts, and
+    return (stats, annotated_image, metadata dict)
+    """
+    img_bytes = file_storage.read()
+    nparr = np.frombuffer(img_bytes, np.uint8)
+    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+    if img is None:
+        raise ValueError('Invalid image file')
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    original_filename = f"original_{timestamp}.jpg"
+    annotated_filename = f"detected_{timestamp}.jpg"
+
+    original_path = os.path.join(UPLOAD_FOLDER, original_filename)
+    annotated_path = os.path.join(OUTPUT_FOLDER, annotated_filename)
+
+    cv2.imwrite(original_path, img)
+
+    results = model(img, conf=conf_threshold, verbose=False)
+    stats = get_detection_stats(results, conf_threshold)
+    img_annotated = draw_detections(img, results, conf_threshold)
+
+    cv2.imwrite(annotated_path, img_annotated)
+
+    metadata = {
+        'timestamp': timestamp,
+        'original_filename': original_filename,
+        'annotated_filename': annotated_filename
+    }
+
+    return stats, img_annotated, metadata
+
+
+def build_frontend_payload(stats, img_annotated, include_image=True):
+    """
+    Format detection output so it matches the frontend contract.
+    """
+    per_spot = [
+        detection['class'] == 'space-occupied'
+        for detection in stats.get('detections', [])
+    ]
+    confidence_values = [
+        detection['confidence']
+        for detection in stats.get('detections', [])
+    ]
+
+    payload = {
+        'success': True,
+        'timestamp': datetime.now().isoformat(),
+        'annotated_image_b64': image_to_base64(img_annotated) if include_image else None,
+        'occupied_count': stats['occupied_spaces'],
+        'free_count': stats['empty_spaces'],
+        'per_spot': per_spot,
+        'confidence': confidence_values,
+        'total_count': stats['total_spaces']
+    }
+    return payload
 
 # ============================================================
 # API Routes
@@ -209,7 +295,8 @@ def home():
             '/health': 'Health check',
             '/detect': 'POST - Detect parking spaces (returns JSON + image)',
             '/detect/json': 'POST - Detect parking spaces (JSON only)',
-            '/detect/image': 'POST - Detect parking spaces (image only)'
+            '/detect/image': 'POST - Detect parking spaces (image only)',
+            '/infer': 'POST - Frontend-aligned JSON response'
         },
         'usage': {
             'method': 'POST',
@@ -257,55 +344,95 @@ def detect_parking():
     return_image = request.form.get('return_image', 'true').lower() == 'true'
     
     try:
-        # Read image
-        img_bytes = file.read()
-        nparr = np.frombuffer(img_bytes, np.uint8)
-        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        stats, img_annotated, metadata = run_detection_pipeline(file, conf_threshold)
+        frontend_payload = build_frontend_payload(stats, img_annotated, include_image=return_image)
         
-        if img is None:
-            return jsonify({'error': 'Invalid image file'}), 400
-        
-        # Save original image
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        original_filename = f"original_{timestamp}.jpg"
-        original_path = os.path.join(UPLOAD_FOLDER, original_filename)
-        cv2.imwrite(original_path, img)
-        
-        # Run detection
-        results = model(img, conf=conf_threshold, verbose=False)
-        
-        # Get statistics
-        stats = get_detection_stats(results, conf_threshold)
-        
-        # Draw detections
-        img_annotated = draw_detections(img, results, conf_threshold)
-        
-        # Save annotated image
-        annotated_filename = f"detected_{timestamp}.jpg"
-        annotated_path = os.path.join(OUTPUT_FOLDER, annotated_filename)
-        cv2.imwrite(annotated_path, img_annotated)
-        
-        # Prepare response
         response_data = {
             'success': True,
-            'timestamp': timestamp,
+            'timestamp': metadata['timestamp'],
+            'annotated_image_b64': frontend_payload['annotated_image_b64'],
+            'occupied_count': frontend_payload['occupied_count'],
+            'free_count': frontend_payload['free_count'],
+            'per_spot': frontend_payload['per_spot'],
+            'confidence': frontend_payload['confidence'],
             'statistics': stats,
             'model_info': {
                 'confidence_threshold': conf_threshold,
                 'model': 'YOLOv8m'
             },
             'files': {
+                'original': metadata['original_filename'],
+                'annotated': metadata['annotated_filename']
+            }
+        }
+        
+        return jsonify(response_data)
+    
+    except ValueError as ve:
+        return jsonify({'error': str(ve)}), 400
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/infer', methods=['POST'])
+def infer_endpoint():
+    """
+    Frontend-aligned endpoint that returns simplified JSON payload
+    """
+    if model is None:
+        return jsonify({'error': 'Model not loaded'}), 500
+
+    if 'image' not in request.files:
+        return jsonify({'error': 'No image file provided'}), 400
+
+    file = request.files['image']
+
+    if file.filename == '':
+        return jsonify({'error': 'Empty filename'}), 400
+
+    conf_threshold = float(request.form.get('confidence', CONFIDENCE_THRESHOLD))
+
+    try:
+        img_bytes = file.read()
+        nparr = np.frombuffer(img_bytes, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+        if img is None:
+            return jsonify({'error': 'Invalid image file'}), 400
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        original_filename = f"original_{timestamp}.jpg"
+        original_path = os.path.join(UPLOAD_FOLDER, original_filename)
+        cv2.imwrite(original_path, img)
+
+        results = model(img, conf=conf_threshold, verbose=False)
+
+        stats = get_detection_stats(results, conf_threshold)
+        per_spot, confidences = extract_spot_details(results, conf_threshold)
+
+        img_annotated = draw_detections(img, results, conf_threshold)
+        annotated_filename = f"detected_{timestamp}.jpg"
+        annotated_path = os.path.join(OUTPUT_FOLDER, annotated_filename)
+        cv2.imwrite(annotated_path, img_annotated)
+
+        response_data = {
+            'success': True,
+            'timestamp': datetime.now().isoformat(),
+            'annotated_image_b64': image_to_base64(img_annotated),
+            'occupied_count': stats['occupied_spaces'],
+            'free_count': stats['empty_spaces'],
+            'per_spot': per_spot,
+            'confidence': confidences,
+            'files': {
                 'original': original_filename,
                 'annotated': annotated_filename
             }
         }
-        
-        # Add base64 image if requested
-        if return_image:
-            response_data['image_base64'] = image_to_base64(img_annotated)
-        
+
         return jsonify(response_data)
-    
+
     except Exception as e:
         return jsonify({
             'success': False,
@@ -383,6 +510,46 @@ def detect_image_only():
         
         return send_file(img_io, mimetype='image/jpeg')
     
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/infer', methods=['POST'])
+def infer_frontend():
+    """
+    Frontend-oriented endpoint that always returns the contract expected by the UI.
+    """
+    if model is None:
+        return jsonify({'error': 'Model not loaded'}), 500
+
+    if 'image' not in request.files:
+        return jsonify({'error': 'No image file provided'}), 400
+
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify({'error': 'Empty filename'}), 400
+
+    conf_threshold = float(request.form.get('confidence', CONFIDENCE_THRESHOLD))
+
+    try:
+        stats, img_annotated, metadata = run_detection_pipeline(file, conf_threshold)
+        payload = build_frontend_payload(stats, img_annotated, include_image=True)
+        payload['model_info'] = {
+            'confidence_threshold': conf_threshold,
+            'model': 'YOLOv8m'
+        }
+        payload['files'] = {
+            'original': metadata['original_filename'],
+            'annotated': metadata['annotated_filename']
+        }
+
+        return jsonify(payload)
+
+    except ValueError as ve:
+        return jsonify({'error': str(ve)}), 400
     except Exception as e:
         return jsonify({
             'success': False,
