@@ -578,24 +578,4 @@ def download_file(filename):
 # ============================================================
 
 if __name__ == '__main__':
-    print("\n" + "=" * 70)
-    print("🚗 Parking Space Detection API")
-    print("=" * 70)
-    print(f"✅ Model: {MODEL_PATH}")
-    print(f"✅ Confidence Threshold: {CONFIDENCE_THRESHOLD}")
-    print(f"✅ Upload Folder: {UPLOAD_FOLDER}")
-    print(f"✅ Output Folder: {OUTPUT_FOLDER}")
-    print("=" * 70)
-    print("\n🌐 Starting Flask server...")
-    print("📡 API will be available at: http://localhost:5000")
-    print("📚 Documentation: http://localhost:5000/")
-    print("\nPress CTRL+C to stop the server")
-    print("=" * 70 + "\n")
-    
-    # Run Flask app
-    app.run(
-        host='0.0.0.0',
-        port=5000,
-        debug=True,
-        threaded=True
-    )
+       app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
