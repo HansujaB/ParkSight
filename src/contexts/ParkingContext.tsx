@@ -57,7 +57,7 @@ const defaultSettings: Settings = {
     { id: 'default', name: 'Default Camera' }
   ],
   selectedCamera: 'default',
-  apiEndpoint: 'http://localhost:5000/detect',
+  apiEndpoint: 'https://parksight.onrender.com/detect',
   requestTimeout: 30,
   showConfidence: true,
   showTrends: true
