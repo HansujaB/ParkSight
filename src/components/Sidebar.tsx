@@ -25,7 +25,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
             </div>
             <div>
               <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Smart Parking
+                ParkSight
               </h1>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Dashboard

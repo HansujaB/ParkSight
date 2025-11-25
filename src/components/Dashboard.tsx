@@ -12,6 +12,27 @@ export default function Dashboard() {
 
   return (
     <div className="p-4 lg:p-8 space-y-6">
+      {/* Welcome Message */}
+      {!currentData && (
+        <div className="card p-12 text-center">
+          <div className="max-w-md mx-auto">
+            <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              Welcome to ParkSight
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Upload a parking lot image to start analyzing parking spots and get real-time occupancy data.
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-500">
+              Use the upload panel on the left to get started, or configure your cameras in settings.
+            </p>
+          </div>
+        </div>
+      )}
       {/* Status Bar */}
       <StatusBar />
 
@@ -47,27 +68,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Welcome Message */}
-      {!currentData && (
-        <div className="card p-12 text-center">
-          <div className="max-w-md mx-auto">
-            <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
-            </div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-              Welcome to Smart Parking Dashboard
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Upload a parking lot image to start analyzing parking spots and get real-time occupancy data.
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-500">
-              Use the upload panel on the left to get started, or configure your cameras in settings.
-            </p>
-          </div>
-        </div>
-      )}
+      
     </div>
   )
 }
